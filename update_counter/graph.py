@@ -34,6 +34,8 @@ plt_total_msg = []
 plt_avg_msg_per_peer = []
 plt_avg_announced_per_peer = []
 plt_avg_withdrawn_per_peer = []
+max_announced = 0
+max_withdrawn = 0
 
 datafile_num = 0
 with open(sys.argv[1], 'r') as fileset:
@@ -70,6 +72,8 @@ with open(sys.argv[1], 'r') as fileset:
                         avg_msg.append(d['msg'])
                         avg_announced.append(d['announced'])
                         avg_withdrawn.append(d['withdrawn'])
+                        max_announced = max(max_announced, d['announced'])
+                        max_withdrawn = max(max_withdrawn, d['withdrawn'])
 
                     plt_intervals.append(cur_interval)
                     plt_total_msg.append(msg_count)
@@ -105,6 +109,9 @@ plt_min_per_peer = min([*plt_avg_msg_per_peer, *plt_avg_announced_per_peer, *plt
 plt_max_per_peer = max([*plt_avg_msg_per_peer, *plt_avg_announced_per_peer, *plt_avg_withdrawn_per_peer])
 datarange = [plt_min_per_peer-100, plt_max_per_peer+100]
 print(datarange)
+
+print(f"max announced/peer/interval: {max_announced}")
+print(f"max withdrawn/peer/interval: {max_withdrawn}")
 
 # now plot the data
 cm = 1/2.54
