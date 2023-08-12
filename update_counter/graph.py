@@ -105,9 +105,12 @@ print("")
 print("creating graphs...")
 
 # get data ranges for withdraw/announce/msg
-plt_min_per_peer = min([*plt_avg_msg_per_peer, *plt_avg_announced_per_peer, *plt_avg_withdrawn_per_peer])
-plt_max_per_peer = max([*plt_avg_msg_per_peer, *plt_avg_announced_per_peer, *plt_avg_withdrawn_per_peer])
-datarange = [plt_min_per_peer-100, plt_max_per_peer+100]
+plt_times = [i*interval_length for i in plt_intervals]
+plt_min = min([*plt_total_msg, *plt_avg_msg_per_peer, *plt_avg_announced_per_peer, *plt_avg_withdrawn_per_peer])
+plt_max = max([*plt_total_msg, *plt_avg_msg_per_peer, *plt_avg_announced_per_peer, *plt_avg_withdrawn_per_peer])
+datarange = [plt_min-100, plt_max+100]
+if datarange[0] < 1:
+    datarange[0] = 1
 print(datarange)
 
 print(f"max announced/peer/interval: {max_announced}")
@@ -119,28 +122,30 @@ fig = plt.figure(figsize=(17*cm, 29*cm))
 plt.subplots_adjust(hspace=0.5)
 
 plt.subplot(411)
-plt.plot(plt_intervals, plt_total_msg, 'b.')
-plt.ylabel('Total number\nof UPDATEs')
-plt.xlabel(f"interval ({interval_length}s each)")
+plt.plot(plt_times, plt_total_msg, 'b.')
+plt.ylabel('Total number\nof UPDATEs [#]')
+plt.xlabel(f"time [s]")
+plt.yscale("log")
+plt.ylim(datarange)
 
 plt.subplot(412)
-plt.plot(plt_intervals, plt_avg_msg_per_peer, 'b.')
-plt.ylabel('Average UPDATEs\nper peer')
-plt.xlabel(f"interval ({interval_length}s each)")
+plt.plot(plt_times, plt_avg_msg_per_peer, 'b.')
+plt.ylabel('Average UPDATEs\nper peer [#]')
+plt.xlabel(f"time [s]")
 plt.yscale("log")
-#plt.ylim(datarange)
+plt.ylim(datarange)
 
 plt.subplot(413)
-plt.plot(plt_intervals, plt_avg_announced_per_peer, 'g.')
-plt.ylabel('Average announced\nprefixes/peer')
-plt.xlabel(f"interval ({interval_length}s each)")
+plt.plot(plt_times, plt_avg_announced_per_peer, 'g.')
+plt.ylabel('Average announced\nprefixes/peer [#]')
+plt.xlabel(f"time [s]")
 plt.yscale("log")
 plt.ylim(datarange)
 
 plt.subplot(414)
-plt.plot(plt_intervals, plt_avg_withdrawn_per_peer, 'r.')
-plt.ylabel('Average withdrawn\nprefixes/peer')
-plt.xlabel(f"interval ({interval_length}s each)")
+plt.plot(plt_times, plt_avg_withdrawn_per_peer, 'r.')
+plt.ylabel('Average withdrawn\nprefixes/peer [#]')
+plt.xlabel(f"time [s]")
 plt.yscale("log")
 plt.ylim(datarange)
 
