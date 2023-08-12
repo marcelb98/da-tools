@@ -50,8 +50,8 @@ with open(sys.argv[1], 'r') as fileset:
                 try:
                     time = float(data[0]) + datafile_num * 3600
                     src = data[1]
-                    announced_pfx = data[2].split(",")
-                    withdrawn_pfx = data[3].split(",")
+                    announced_pfx = [] if data[2] == '' else data[2].split(",")
+                    withdrawn_pfx = [] if data[3] == '' else data[3].split(",")
                 except Exception as e:
                     print('ABORT!')
                     print('Was not able to parse this line:')
