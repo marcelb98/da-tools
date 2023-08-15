@@ -4,13 +4,14 @@ import sys
 import matplotlib.pyplot as plt
 
 def help():
-    print('USAGE: graph.py FILESET INTERVAL')
+    print('USAGE: graph.py FILESET INTERVAL [DATA_LEN]')
     print('Plot graphs with the number of received UPDATEs, UPDATEs per peer and the announced/withdrawn prefixes per peer.')
     print('')
     print('FILESET      Path to file containing the filenames of the set of pcaps which should be analyzed. Each of this files has to contain packets of 1 hour. They have to be listed in the dataset in correct timeorder.')
     print('             Use for example tshark to parse the pcap:')
     print('             $ tshark -r trafficdump.pcap -M 1 -T fields -e _ws.col.Time -e ip.src -e bgp.nlri_prefix -e bgp.withdrawn_prefix -E separator=";" bgp.type==2 > parsed.csv')
     print('INTERVAL     Interval (in seconds) for which received UPDATE messages should be grouped together for plotting in the graph.')
+    print('DATA_LEN     Time in seconds every single file in the dataset represents. Default: 3600')
 
 def avg(data):
     if len(data) == 0:
@@ -29,6 +30,11 @@ cur_interval_data = {
     # "neighbor": {'msg': 0, 'announced': 0, 'withdrawn': 0},
 }
 
+if len(sys.argv) >= 4:
+    dataset_len = int(sys.argv[3])
+else:
+    dataset_len = 3600
+
 plt_intervals = []
 plt_total_msg = []
 plt_avg_msg_per_peer = []
@@ -36,6 +42,8 @@ plt_avg_announced_per_peer = []
 plt_avg_withdrawn_per_peer = []
 max_announced = 0
 max_withdrawn = 0
+
+peerset = set()
 
 datafile_num = 0
 with open(sys.argv[1], 'r') as fileset:
@@ -48,7 +56,7 @@ with open(sys.argv[1], 'r') as fileset:
                 # TIME;SRC;ANNOUNCE_LIST;WITHDRAW_LIST
                 data = line.rstrip("\n").split(';')
                 try:
-                    time = float(data[0]) + datafile_num * 3600
+                    time = float(data[0]) + datafile_num * dataset_len
                     src = data[1]
                     announced_pfx = [] if data[2] == '' else data[2].split(",")
                     withdrawn_pfx = [] if data[3] == '' else data[3].split(",")
@@ -67,6 +75,7 @@ with open(sys.argv[1], 'r') as fileset:
                     avg_announced = []
                     avg_withdrawn = []
                     for neigh in cur_interval_data:
+                        peerset.add(neigh)
                         d = cur_interval_data[neigh]
                         msg_count += d['msg']
                         avg_msg.append(d['msg'])
@@ -113,6 +122,7 @@ if datarange[0] < 1:
     datarange[0] = 1
 print(datarange)
 
+print(f"number of peers: {len(peerset)}")
 print(f"max announced/peer/interval: {max_announced}")
 print(f"max withdrawn/peer/interval: {max_withdrawn}")
 
