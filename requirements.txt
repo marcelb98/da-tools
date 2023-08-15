@@ -26,4 +26,5 @@ six==1.16.0
 tk==0.1.0
 requests==2.31.0
 exabgp==4.2.21
+mrtparse==2.2.0
 
