@@ -47,8 +47,9 @@ def get_announce(nlri, as_path, communities):
 
         exastring = exastring + f" community {comm}"
 
-    size = 5 * 1 + 4 * len(as_path) + 4 * len(communities) + 49
-    return (exastring+'\n', size)
+    size_wire = 53 + 4 * len(as_path) + 4 * len(communities)
+    size_mem = 14 + 4 * len(as_path) + 4 * len(communities)
+    return (exastring+'\n', size_wire, size_mem)
 
 if len(sys.argv) < 4:
     help()
@@ -71,27 +72,35 @@ else:
 f = open('/tmp/mem_usage', 'w')
 time.sleep(5) # for ExaBGP startup
 
-total_sent = 0
+total_sent_wire = 0
+total_sent_mem = 0
 addresses = iter(subnet)
-i = 1
-while total_sent < amount:
+i1 = 1
+i2 = 1
+j = 1
+while total_sent_mem < amount:
     as_path = [as_number, as_number, as_number]
     communities = []
-    payload = 5 + 4 * len(as_path) # 5 Byte NLRI + 4 Byte for each AS
+    next_wire_size = 53 + 4 * len(as_path)
     
-    while payload < 4000 and payload < (amount - total_sent): #65511:
-        communities.append( (as_number, i) )
-        payload += 4
-        i += 1
-        if i > 65511:
-            i = 1
+    while next_wire_size < 4090 and next_wire_size < (amount - total_sent_mem):
+        communities.append( (i1, i2) )
+        next_wire_size += 4
+        i2 += 1
+        if i2 > 65511:
+            i2 = 1
+            i1 += 1
+        if i1 > 65511:
+            i1 = 1
     
     next_update = get_announce(next(addresses), as_path, communities)
     sys.stdout.write( next_update[0] )
-    total_sent += next_update[1]
+    total_sent_wire += next_update[1]
+    total_sent_mem += next_update[2]
+    if j % 10 == 0:
+        f.write(f"#sent_msg={j}   total_sent_wire={total_sent_wire}B = {total_sent_wire/1024/1024}MB    total_sent_mem={total_sent_mem}B = {total_sent_mem/1024/1024}MB")
     sys.stdout.flush()
-    f.write(f"total_sent={total_sent}B = {total_sent/1024}KB = {total_sent/1024/1024}MB = {total_sent/1024/1024/1024}GB")
     f.seek(0)
-    time.sleep(0.01)
+    j += 1
 
 f.close()
