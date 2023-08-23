@@ -148,49 +148,52 @@ markers = ["b.", "gx", "rs", "k*", "b2", "gp"]
 
 #plt.subplot(411)
 print("Showing: total_msg")
-fig = plt.figure(figsize=(20*cm, 10*cm))
+fig = plt.figure(figsize=(20*cm, 7*cm))
 for i, data in enumerate(interval_data):
     plt.plot(data[0], data[1], markers[i%6], label=f"{interval_lengths[i]}s intervals") # x:plt_times y:plt_total_msg
 plt.ylabel('Total number\nof UPDATEs [#]')
 plt.xlabel(f"Time [s]")
 plt.yscale("log")
-plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3)
+plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
 plt.ylim(datarange)
+plt.tight_layout()
 plt.show()
-
 
 #plt.subplot(412)
 print("Showing: avg_msg_per_peer")
-fig = plt.figure(figsize=(20*cm, 10*cm))
+fig = plt.figure(figsize=(20*cm, 7*cm))
 for i, data in enumerate(interval_data):
     plt.plot(data[0], data[2], markers[i%6], label=f"{interval_lengths[i]}s intervals") # x:plt_times y:plt_avg_msg_per_peer
 plt.ylabel('Average UPDATEs\nper peer [#]')
 plt.xlabel(f"Time [s]")
 plt.yscale("log")
-plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3)
+plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
 plt.ylim(datarange)
+plt.tight_layout()
 plt.show()
 
 #plt.subplot(413)
 print("Showing: avg_announced_per_peer")
-fig = plt.figure(figsize=(20*cm, 10*cm))
+fig = plt.figure(figsize=(20*cm, 7*cm))
 for i, data in enumerate(interval_data):
     plt.plot(data[0], data[3], markers[i%6], label=f"{interval_lengths[i]}s intervals") # x:plt_times y:plt_avg_announced_per_peer
 plt.ylabel('Average announced\nprefixes/peer [#]')
 plt.xlabel(f"Time [s]")
 plt.yscale("log")
-plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3)
+plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
 plt.ylim(datarange)
+plt.tight_layout()
 plt.show()
 
 #plt.subplot(414)
 print("Showing: avg_withdrawn_per_peer")
-fig = plt.figure(figsize=(20*cm, 10*cm))
+fig = plt.figure(figsize=(20*cm, 7*cm))
 for i, data in enumerate(interval_data):
     plt.plot(data[0], data[4], markers[i%6], label=f"{interval_lengths[i]}s intervals") # x:plt_times y:plt_avg_withdrawn_per_peer
 plt.ylabel('Average withdrawn\nprefixes/peer [#]')
 plt.xlabel(f"Time [s]")
 plt.yscale("log")
-plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3)
+plt.legend(loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
 plt.ylim(datarange)
+plt.tight_layout()
 plt.show()
