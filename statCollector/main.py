@@ -54,6 +54,10 @@ class Controller:
     start = None
     queue = Queue()
 
+    num_cpu = None
+    total_ram = None
+    total_swap = None
+
     comment = "n/A"
     data = {}
     # data = {id: {'time': secSinceStart,
@@ -61,6 +65,19 @@ class Controller:
     #              'ps_oom': integer, 'ps_cpu': integer, 'ps_mem': integer, 'ps_vsz': integer, 'ps_rss': integer, 'ps_pri' integer,
     #              'bird_established': integer, 'bird_mem_tables': int, 'bird_mem_attr': int, 'bird_mem_total': int, 'bird_received_pfx': integer, 'bird_accepted_pfx': integer, 'bird_received_withdraw': int, 'bird_accepted_withdraw': int,
     # }}
+
+    def __init__(self):
+        # get number of CPUs
+        r = subprocess.run(['nproc'], stdout=subprocess.PIPE)
+        self.num_cpu = int(r.stdout.decode('utf-8').split("\n")[0])
+
+        # get available mem/swap
+        with open('/proc/meminfo', 'r') as f:
+            for l in f.readlines():
+                if l.startswith('MemTotal'):
+                    self.total_ram = int(l.split(":")[1].lstrip().split(" ")[0]) # KiB
+                elif l.startswith('SwapTotal'):
+                    self.total_swap = int(l.split(":")[1].lstrip().split(" ")[0]) # KiB
 
     def start(self, comment):
         def start():
@@ -135,7 +152,9 @@ class Controller:
         with open(f"stats_{self.start}", "w") as f:
             f.write(f"START:{self.start}\n")
             f.write(f"COMMENT:{self.comment}\n")
-            f.write(f"TOTAL_RAM:\n") # TODO
+            f.write(f"NUM_CPU:{self.num_cpu}\n")
+            f.write(f"TOTAL_RAM:{self.total_ram}\n")
+            f.write(f"TOTAL_SWAP:{self.total_swap}\n")
             f.write("COLUMNS:idx,time,sys_load,sys_mem,sys_swap,sys_net_rx,sys_net_tx,ps_cpu,ps_mem,ps_vsz,ps_rss,ps_pri,bird_established,bird_mem_tables,bird_mem_attr,bird_mem_total,bird_received_pfx,bird_accepted_pfx,bird_received_withdraw,bird_accepted_withdraw\n")
             f.write("===DATA===\n")
             for i, row in self.data.items():
