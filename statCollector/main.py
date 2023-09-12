@@ -87,8 +87,8 @@ class Controller:
                 # This loop is running as long as we want to collect statistics.
                 # We trigger to collect each of our requested statistics once a second.
                 t = int(time.time()) - self.start
-                self.data[i] = {'time': t, 'sys_load': 0, 'sys_mem': 0, 'sys_swap': 0, 'sys_net_rx': 0, 'sys_net_tx': 0, 'ps_cpu': 0, 'ps_mem': 0, 'ps_vsz': 0, 'ps_rss': 0, 'ps_pri_': 0,
-                                'bird_established': 0, 'bird_mem_tables': 0, 'bird_mem_attr': 0, 'bird_mem_total': 0, 'bird_received_pfx': 0, 'bird_accepted_pfx': 0, 'bird_received_withdraw': 0}
+                self.data[i] = {'time': t, 'sys_load': 0, 'sys_mem': 0, 'sys_swap': 0, 'sys_net_rx': 0, 'sys_net_tx': 0, 'ps_cpu': 0, 'ps_mem': 0, 'ps_vsz': 0, 'ps_rss': 0, 'ps_pri': 0,
+                                'bird_established': 0, 'bird_mem_tables': 0, 'bird_mem_attr': 0, 'bird_mem_total': 0, 'bird_received_pfx': 0, 'bird_accepted_pfx': 0, 'bird_received_withdraw': 0, 'bird_accepted_withdraw': 0}
                 ps = PsCollector(self.queue, i)
                 ps.start()
                 bird = BirdCollector(self.queue, i)
