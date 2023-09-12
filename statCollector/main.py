@@ -146,8 +146,11 @@ class Controller:
         self.running = False
 
         # wait for empty queue
+        print("Waiting to empty queue...")
+        time.sleep(1)
         while not self.queue.empty():
             time.sleep(0.5)
+        print("Queue is empty now. Writing to file...")
 
         # write data to file
         with open(f"stats_{self.start}", "w") as f:
