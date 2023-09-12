@@ -1,0 +1,11 @@
+[Unit]
+Description=StatCollector
+
+[Service]
+Environment="NET_IF=vx0"
+WorkingDirectory=/home/labadm/mbeyer/data
+ExecStart=/home/labadm/mbeyer/da-tools/venv/bin/python /home/labadm/mbeyer/da-tools/statCollector/main.py
+
+[Install]
+WantedBy=multi-user.target
+
