@@ -285,17 +285,18 @@ class BirdCollector (Collector):
         mem_tables = 0
         mem_attr = 0
         mem_total = 0
-        r = subprocess.run(['birdc',f'show memory'], stdout=subprocess.PIPE)
-        for l in r.stdout.decode('utf-8').split("\n"):
-            if 'Routing tables:' in l:
-                l = sep.split(l)
-                mem_tables = self._memCalc(l[2], l[3])
-            elif 'Route attributes:' in l:
-                l = sep.split(l)
-                mem_attr = self._memCalc(l[2], l[3])
-            elif 'Total:' in l:
-                l = sep.split(l)
-                mem_total = self._memCalc(l[1], l[2])
+        for socket in sockets:
+            r = subprocess.run(['birdc','-s',socket,f'show memory'], stdout=subprocess.PIPE)
+            for l in r.stdout.decode('utf-8').split("\n"):
+                if 'Routing tables:' in l:
+                    l = sep.split(l)
+                    mem_tables += self._memCalc(l[2], l[3])
+                elif 'Route attributes:' in l:
+                    l = sep.split(l)
+                    mem_attr += self._memCalc(l[2], l[3])
+                elif 'Total:' in l:
+                    l = sep.split(l)
+                    mem_total += self._memCalc(l[1], l[2])
 
         # send data to queue
         data = {'established': num_established, 'mem_tables': mem_tables, 'mem_attr': mem_attr, 'mem_total': mem_total, 'received_pfx': received_pfx, 'accepted_pfx': accepted_pfx, 'received_withdraw': received_withdraw, 'accepted_withdraw': accepted_withdraw}
