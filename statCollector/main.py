@@ -250,7 +250,7 @@ class BirdCollector (Collector):
         sockets = []
         if os.environ.get('BIRD_SOCKETS') is not None:
             for s in os.environ.get('BIRD_SOCKETS').split(','):
-                if os.path.isfile(s):
+                if stat.S_ISSOCK(os.stat(s)):
                     sockets.append(s)
         if len(sockets) == 0:
             sockets.append('/var/run/bird.ctl')
