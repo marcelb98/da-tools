@@ -8,6 +8,7 @@ import time
 import subprocess
 import re
 import os
+import stat
 
 class Server(BaseHTTPRequestHandler):
 
