@@ -247,29 +247,38 @@ class BirdCollector (Collector):
 
         sep = re.compile('[\s]+')
 
-        # get list of BGP protocols
-        r = subprocess.run(['birdc',"show protocols"], stdout=subprocess.PIPE)
-        for p in r.stdout.decode('utf-8').split("\n"):
-            p = sep.split(p)
-            if len(p) >= 2 and p[1] == 'BGP':
-                protocols[p[0]] = p[5] == 'Established'
-                if p[5] == 'Established':
-                    num_established += 1
+        sockets = []
+        if os.environ.get('BIRD_SOCKETS') is not None:
+            for s in os.environ.get('BIRD_SOCKETS').split(','):
+                if os.path.isfile(s):
+                    sockets.append(s)
+        if len(sockets) == 0:
+            sockets.append('/var/run/bird.ctl')
 
-        # sum up prefixes received in protocols
-        for protocol in protocols.keys():
-            r = subprocess.run(['birdc',f'show protocols all {protocol}'], stdout=subprocess.PIPE)
-            r = r.stdout.decode('utf-8')
-            if 'Import updates:' in r:
-                for l in r.split("\n"):
-                    if 'Import updates:' in l:
-                        l = sep.split(l)
-                        received_pfx += int(l[3])
-                        accepted_pfx += int(l[7])
-                    elif 'Import withdraws:' in l:
-                        l = sep.split(l)
-                        received_withdraw += int(l[3])
-                        accepted_withdraw += int(l[7])
+        for socket in sockets:
+            # get list of BGP protocols
+            r = subprocess.run(['birdc','-s',socket,"show protocols"], stdout=subprocess.PIPE)
+            for p in r.stdout.decode('utf-8').split("\n"):
+                p = sep.split(p)
+                if len(p) >= 2 and p[1] == 'BGP':
+                    protocols[p[0]] = p[5] == 'Established'
+                    if p[5] == 'Established':
+                        num_established += 1
+
+            # sum up prefixes received in protocols
+            for protocol in protocols.keys():
+                r = subprocess.run(['birdc','-s',socket,f'show protocols all {protocol}'], stdout=subprocess.PIPE)
+                r = r.stdout.decode('utf-8')
+                if 'Import updates:' in r:
+                    for l in r.split("\n"):
+                        if 'Import updates:' in l:
+                            l = sep.split(l)
+                            received_pfx += int(l[3])
+                            accepted_pfx += int(l[7])
+                        elif 'Import withdraws:' in l:
+                            l = sep.split(l)
+                            received_withdraw += int(l[3])
+                            accepted_withdraw += int(l[7])
 
         # get memory usage (all in kB)
         mem_tables = 0
@@ -319,6 +328,10 @@ if __name__ == "__main__":
         print("Set NET_IF environment variable to interface name if you want to monitor network traffic.\n")
     else:
         print("Network traffic is monitored at interface "+os.environ.get('NET_IF'))
+    if os.environ.get('BIRD_SOCKETS') is None:
+        print("Set BIRD_SOCKETS environment variable to a comma separated list of socket files for BIRD daemons to collect statistics from. Default: /var/run/bird.ctl\n")
+    else:
+        print("Monitored BIRD sockets "+os.environ.get('BIRD_SOCKETS'))
     print(f"Listening on http://{hostname}:{port} for commands:")
     print(f"   http://{hostname}:{port}/start?comment=foo   Start new measurement, write `foo` as comment to result file")
     print(f"   http://{hostname}:{port}/stop                Stop measurement")
