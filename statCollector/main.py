@@ -54,6 +54,7 @@ class Controller:
     running = False
     start = None
     queue = Queue()
+    running_childs_count = 0
 
     num_cpu = None
     total_ram = None
@@ -86,15 +87,23 @@ class Controller:
             while self.running:
                 # This loop is running as long as we want to collect statistics.
                 # We trigger to collect each of our requested statistics once a second.
+                # we use  _  as a representation for None in our CSV output
                 t = int(time.time()) - self.start
                 self.data[i] = {'time': t, 'sys_load': 0, 'sys_mem': 0, 'sys_swap': 0, 'sys_net_rx': 0, 'sys_net_tx': 0, 'ps_cpu': 0, 'ps_mem': 0, 'ps_vsz': 0, 'ps_rss': 0, 'ps_pri': 0,
-                                'bird_established': 0, 'bird_mem_tables': 0, 'bird_mem_attr': 0, 'bird_mem_total': 0, 'bird_received_pfx': 0, 'bird_accepted_pfx': 0, 'bird_received_withdraw': 0, 'bird_accepted_withdraw': 0}
-                ps = PsCollector(self.queue, i)
-                ps.start()
-                bird = BirdCollector(self.queue, i)
-                bird.start()
-                sys = SystemCollector(self.queue, i)
+                                'bird_established': '_', 'bird_mem_tables': '_', 'bird_mem_attr': '_', 'bird_mem_total': '_', 'bird_received_pfx': '_', 'bird_accepted_pfx': '_', 'bird_received_withdraw': '_', 'bird_accepted_withdraw': '_'}
+
+                # collect system statistics
+                sys = SystemCollector(self.queue, i, self.running_childs_count)
                 sys.start()
+
+                # collect bird process statistics
+                ps = PsCollector(self.queue, i, self.running_childs_count)
+                ps.start()
+
+                # collect bird statistics (only every 10s, as it is quite expensive)
+                if i % 10 == 1:
+                    bird = BirdCollector(self.queue, i, self.running_childs_count)
+                    bird.start()
 
                 i += 1
                 time.sleep(1)
@@ -145,6 +154,12 @@ class Controller:
     def stop(self):
         self.running = False
 
+        print("Waiting for childs to finish...")
+        while self.running_childs_count > 0:
+            print(f"Running childs: {self.running_childs_count}", end="\r")
+            time.sleep(0.5)
+        print("")
+
         # wait for empty queue
         print("Waiting to empty queue...")
         time.sleep(1)
@@ -168,10 +183,12 @@ class Collector:
     t = None
     queue = None
     i = None
+    running_childs_count = None
 
-    def __init__(self, q, i):
+    def __init__(self, q, i, running_childs_count):
         self.queue = q
         self.i = i
+        self.running_childs_count = running_childs_count
 
     def run(self):
         raise NotImplementedError
@@ -180,6 +197,7 @@ class Collector:
         self.t = Thread(target=self.run)
         self.t.daemon = True
         self.t.start()
+        self.running_childs_count += 1
 
 class PsCollector(Collector):
 
@@ -188,8 +206,8 @@ class PsCollector(Collector):
     i = None
     pid = None
 
-    def __init__(self, q, i):
-        super().__init__(q, i)
+    def __init__(self, q, i, running_childs_count):
+        super().__init__(q, i, running_childs_count)
         self.pid = subprocess.check_output(["pidof","bird"]).decode('utf-8').split("\n")[0]
 
     def run(self):
@@ -201,6 +219,8 @@ class PsCollector(Collector):
             data = {'cpu': ps[1], 'mem': ps[2], 'vsz': ps[3], 'rss': ps[4], 'pri': ps[5]}
 
             self.queue.put({'id': self.i, 'who': 'PsCollector', 'data': data})
+            self.running_childs_count -= 1
+
         except IndexError:
             pass
 
@@ -238,6 +258,7 @@ class SystemCollector(Collector):
         # send data to queue
         data = {'load': load, 'mem': mem, 'swap': swap, 'net_rx': rx, 'net_tx': tx}
         self.queue.put({'id': self.i, 'who': 'SystemCollector', 'data': data})
+        self.running_childs_count -= 1
 
 class BirdCollector (Collector):
 
@@ -265,8 +286,8 @@ class BirdCollector (Collector):
             for p in r.stdout.decode('utf-8').split("\n"):
                 p = sep.split(p)
                 if len(p) >= 2 and p[1] == 'BGP':
-                    protocols[p[0]] = p[5] == 'Established'
-                    if p[5] == 'Established':
+                    protocols[p[0]] = p[6] == 'Established'
+                    if p[6] == 'Established':
                         num_established += 1
 
             # sum up prefixes received in protocols
@@ -304,6 +325,7 @@ class BirdCollector (Collector):
         # send data to queue
         data = {'established': num_established, 'mem_tables': mem_tables, 'mem_attr': mem_attr, 'mem_total': mem_total, 'received_pfx': received_pfx, 'accepted_pfx': accepted_pfx, 'received_withdraw': received_withdraw, 'accepted_withdraw': accepted_withdraw}
         self.queue.put({'id': self.i, 'who': 'BirdCollector', 'data': data})
+        self.running_childs_count -= 1
 
     def _memCalc(self, number, unit):
         # calculates memory to kB from given unit (B, kB, mB, gB)
