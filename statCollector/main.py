@@ -30,7 +30,6 @@ class Server(BaseHTTPRequestHandler):
             if self.controller.running:
                 self.wfile.write(bytes("ALREADY RUNNING.", "utf-8"))
             else:
-                print(controller)
                 self.controller.start(comment)
                 self.wfile.write(bytes("STARTED.", "utf-8"))
 
