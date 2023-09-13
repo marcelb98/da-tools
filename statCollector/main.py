@@ -30,6 +30,7 @@ class Server(BaseHTTPRequestHandler):
             if self.controller.running:
                 self.wfile.write(bytes("ALREADY RUNNING.", "utf-8"))
             else:
+                print(controller)
                 self.controller.start(comment)
                 self.wfile.write(bytes("STARTED.", "utf-8"))
 
@@ -52,7 +53,7 @@ class Server(BaseHTTPRequestHandler):
 
 class Controller:
     running = False
-    start = None
+    starttime = None
     queue = Queue()
     running_childs_count = 0
 
@@ -88,7 +89,7 @@ class Controller:
                 # This loop is running as long as we want to collect statistics.
                 # We trigger to collect each of our requested statistics once a second.
                 # we use  _  as a representation for None in our CSV output
-                t = int(time.time()) - self.start
+                t = int(time.time()) - self.starttime
                 self.data[i] = {'time': t, 'sys_load': 0, 'sys_mem': 0, 'sys_swap': 0, 'sys_net_rx': 0, 'sys_net_tx': 0, 'ps_cpu': 0, 'ps_mem': 0, 'ps_vsz': 0, 'ps_rss': 0, 'ps_pri': 0,
                                 'bird_established': '_', 'bird_mem_tables': '_', 'bird_mem_attr': '_', 'bird_mem_total': '_', 'bird_received_pfx': '_', 'bird_accepted_pfx': '_', 'bird_received_withdraw': '_', 'bird_accepted_withdraw': '_'}
 
@@ -139,7 +140,7 @@ class Controller:
 
         self.running = True
         self.comment = comment
-        self.start = int(time.time())
+        self.starttime = int(time.time())
 
         # trigger data gathering
         t = Thread(target=start)
@@ -168,8 +169,8 @@ class Controller:
         print("Queue is empty now. Writing to file...")
 
         # write data to file
-        with open(f"stats_{self.start}", "w") as f:
-            f.write(f"START:{self.start}\n")
+        with open(f"stats_{self.starttime}", "w") as f:
+            f.write(f"START:{self.starttime}\n")
             f.write(f"COMMENT:{self.comment}\n")
             f.write(f"NUM_CPU:{self.num_cpu}\n")
             f.write(f"TOTAL_RAM:{self.total_ram}\n")
@@ -204,25 +205,37 @@ class PsCollector(Collector):
     t = None
     queue = None
     i = None
-    pid = None
+    pids = None
 
     def __init__(self, q, i, running_childs_count):
         super().__init__(q, i, running_childs_count)
-        self.pid = subprocess.check_output(["pidof","bird"]).decode('utf-8').split("\n")[0]
+        self.pids = subprocess.check_output(["pidof","bird"]).decode('utf-8').split("\n")[0].split(" ")
 
     def run(self):
-        try:
-            sep = re.compile('[\s]+')
-            r = subprocess.run(['ps','-p',self.pid,'-o','%cpu,%mem,vsz,rss,pri'], stdout=subprocess.PIPE)
-            ps = sep.split(r.stdout.decode('utf-8').split('\n')[1])
+        data = {'cpu': '', 'mem': '', 'vsz': '', 'rss': '', 'pri': ''}
+        for pid in self.pids:
+            try:
+                sep = re.compile('[\s]+')
+                r = subprocess.run(['ps','-p',pid,'-o','%cpu,%mem,vsz,rss,pri'], stdout=subprocess.PIPE)
+                ps = sep.split(r.stdout.decode('utf-8').split('\n')[1])
 
-            data = {'cpu': ps[1], 'mem': ps[2], 'vsz': ps[3], 'rss': ps[4], 'pri': ps[5]}
+                data['cpu'] = data['cpu'] + '|' + ps[1]
+                data['mem'] = data['mem'] + '|' + ps[2]
+                data['vsz'] = data['vsz'] + '|' + ps[3]
+                data['rss'] = data['rss'] + '|' + ps[4]
+                data['pri'] = data['pri'] + '|' + ps[5]
 
-            self.queue.put({'id': self.i, 'who': 'PsCollector', 'data': data})
-            self.running_childs_count -= 1
+            except IndexError:
+                pass
 
-        except IndexError:
-            pass
+        data['cpu'] = data['cpu'][1:]
+        data['mem'] = data['mem'][1:]
+        data['vsz'] = data['vsz'][1:]
+        data['rss'] = data['rss'][1:]
+        data['pri'] = data['pri'][1:]
+
+        self.queue.put({'id': self.i, 'who': 'PsCollector', 'data': data})
+        self.running_childs_count -= 1
 
 class SystemCollector(Collector):
     def run(self):
