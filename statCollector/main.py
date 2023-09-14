@@ -218,11 +218,11 @@ class PsCollector(Collector):
                 r = subprocess.run(['ps','-p',pid,'-o','%cpu,%mem,vsz,rss,pri'], stdout=subprocess.PIPE)
                 ps = sep.split(r.stdout.decode('utf-8').split('\n')[1])
 
-                data['cpu'] = data['cpu'] + '|' + ps[1]
-                data['mem'] = data['mem'] + '|' + ps[2]
-                data['vsz'] = data['vsz'] + '|' + ps[3]
-                data['rss'] = data['rss'] + '|' + ps[4]
-                data['pri'] = data['pri'] + '|' + ps[5]
+                data['cpu'] = data['cpu'] + '|' + ps[0]
+                data['mem'] = data['mem'] + '|' + ps[1]
+                data['vsz'] = data['vsz'] + '|' + ps[2]
+                data['rss'] = data['rss'] + '|' + ps[3]
+                data['pri'] = data['pri'] + '|' + ps[4]
 
             except IndexError:
                 pass
