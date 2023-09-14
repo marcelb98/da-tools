@@ -80,23 +80,23 @@ for datapoint in statsdata:
     if 'ps_cpu' in datapoint.keys():
         birdstat_y_cpu.append( [None if e == '_' or e == '' else float(e) for e in datapoint['ps_cpu'].split('|') ])
     else:
-        birdstat_y_cpu.append([None])
+        birdstat_y_cpu.append([None,None])
     if 'ps_vsz' in datapoint.keys():
         birdstat_y_mem.append( [None if e == '_' or e == '' else float(e)/1024 for e in datapoint['ps_vsz'].split('|') ]) # KiB → MiB
     else:
-        birdstat_y_mem.append([None])
+        birdstat_y_mem.append([None,None])
     if 'bird_established' in datapoint.keys():
-        birdstat_y_established.append( None if datapoint['bird_established'] == '_' else float(datapoint['bird_established']) )
+        birdstat_y_established.append( [None if e == '_' or e == '' else int(e) for e in datapoint['bird_established'].split('|') ])
     else:
-        birdstat_y_established.append(None)
+        birdstat_y_established.append([None,None])
     if 'bird_received_pfx' in datapoint.keys():
-        birdstat_y_pfx.append( None if datapoint['bird_received_pfx'] == '_' else float(datapoint['bird_received_pfx']) )
+        birdstat_y_pfx.append( [None if e == '_' or e == '' else int(e) for e in datapoint['bird_received_pfx'].split('|') ])
     else:
-        birdstat_y_pfx.append(None)
+        birdstat_y_pfx.append([None,None])
     if 'bird_received_withdrawn' in datapoint.keys():
-        birdstat_y_withdrawn.append( None if datapoint['bird_received_withdrawn'] == '_' else float(datapoint['bird_received_withdrawn']) )
+        birdstat_y_withdrawn.append( [None if e == '_' or e == '' else int(e) for e in datapoint['bird_withdrawn'].split('|') ])
     else:
-        birdstat_y_withdrawn.append(None)
+        birdstat_y_withdrawn.append([None,None])
 
 # SHOW GRAPHS
 cm = 1/2.54
@@ -126,30 +126,31 @@ del fig, host, ax2, p1, p2, p3
 
 print('GRAPH2: BIRD status')
 color1, color2, color3, color4, color5 = plt.cm.Set1([.05, .15, .25, .35, .45])
-fig, host = plt.subplots(figsize=(25*cm, 10*cm), layout='constrained') # Host = CPU usage
-ax2 = host.twinx() # ax2 = RAM
-ax3 = host.twinx() # ax3 = BGP Sessions
-ax4 = host.twinx() # ax4 = prefixes
-host.set_xlabel("Time [s]")
-host.set_ylabel("CPU usage [%]")
-ax2.set_ylabel("RAM [MiB]")
-ax3.set_ylabel("BGP sessions [#]")
-ax4.set_ylabel("prefixes [#]")
-p1 = host.plot(x, [e[0] for e in birdstat_y_cpu], "-", color=color1, label=f"CPU usage")
-if len(birdstat_y_cpu[0]) > 1: # check if 2nd BIRD process was recorded
-    p1_2 = host.plot(x, [e[1] for e in birdstat_y_cpu], "-", color=color1, label=f"CPU usage (p2)")
-host.set_ylim(0, 100)
-p2 = ax2.plot(x, [e[0] for e in birdstat_y_mem], "-", color=color2, label=f"used RAM") # TODO plot also mem1,...,n
-if len(birdstat_y_mem[0]) > 1: # check if 2nd BIRD process was recorded
-    p2_2 = ax2.plot(x, [e[1] for e in birdstat_y_mem], "-", color=color2, label=f"used RAM (p2)")
-if 'total_ram' in metadata.keys():
-    ax2.axhline(y = int(metadata['total_ram'])/1024, color = color2, linestyle = '--')
-    ax2.set_ylim(0, int(metadata['total_ram'])/1024*1.1)
-p3 = ax3.plot(x, birdstat_y_established, ".-", color=color3, label=f"established BGP sessions")
-p4 = ax4.plot(x, birdstat_y_pfx, ".-", color=color4, label=f"received prefixes")
-p5 = ax4.plot(x, birdstat_y_withdrawn, ".-", color=color5, label=f"withdrawn prefixes")
-plt.legend(handles=p1+p2+p3+p4+p5, loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
-ax3.spines['right'].set_position(('outward', 60))
-ax4.spines['right'].set_position(('outward', 120))
-plt.tight_layout()
-plt.show()
+for proto in range(0,2):
+    print('   IPv4') if proto == 0 else print('   IPv6')
+
+    fig, host = plt.subplots(figsize=(25*cm, 10*cm), layout='constrained') # Host = CPU usage
+    ax2 = host.twinx() # ax2 = RAM
+    ax3 = host.twinx() # ax3 = BGP Sessions
+    ax4 = host.twinx() # ax4 = prefixes
+    host.set_xlabel("Time [s]")
+    host.set_ylabel("CPU usage [%]")
+    ax2.set_ylabel("RAM [MiB]")
+    ax3.set_ylabel("BGP sessions [#]")
+    ax4.set_ylabel("prefixes [#]")
+    p1 = host.plot(x, [e[proto] for e in birdstat_y_cpu], "-", color=color1, label=f"CPU usage")
+    host.set_ylim(0, 100)
+    p2 = ax2.plot(x, [e[proto] for e in birdstat_y_mem], "-", color=color2, label=f"used RAM") # TODO plot also mem1,...,n
+    if 'total_ram' in metadata.keys():
+        ax2.axhline(y = int(metadata['total_ram'])/1024, color = color2, linestyle = '--')
+        ax2.set_ylim(0, int(metadata['total_ram'])/1024*1.1)
+    import pprint
+    pprint.pprint(birdstat_y_established)
+    p3 = ax3.plot(x, [None if len(e) == 1 else e[proto] for e in birdstat_y_established], ".-", color=color3, label=f"established BGP sessions")
+    p4 = ax4.plot(x, [None if len(e) == 1 else e[proto] for e in birdstat_y_pfx], ".-", color=color4, label=f"received prefixes")
+    p5 = ax4.plot(x, [None if len(e) == 1 else e[proto] for e in birdstat_y_withdrawn], ".-", color=color5, label=f"withdrawn prefixes")
+    plt.legend(handles=p1+p2+p3+p4+p5, loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
+    ax3.spines['right'].set_position(('outward', 60))
+    ax4.spines['right'].set_position(('outward', 120))
+    plt.tight_layout()
+    plt.show()

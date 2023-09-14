@@ -204,11 +204,14 @@ class PsCollector(Collector):
     t = None
     queue = None
     i = None
-    pids = None
+    pids = [] # IPv4, IPv6
 
     def __init__(self, q, i, running_childs_count):
         super().__init__(q, i, running_childs_count)
-        self.pids = subprocess.check_output(["pidof","bird"]).decode('utf-8').split("\n")[0].split(" ")
+        pid_v4 = subprocess.run(["systemctl", "show", "--property", "MainPID", "--value", "bird@globepeer-ipv4"], stdout=subprocess.PIPE).stdout.decode('utf-8').split("\n")[0]
+        pid_v6 = subprocess.run(["systemctl", "show", "--property", "MainPID", "--value", "bird@globepeer-ipv6"], stdout=subprocess.PIPE).stdout.decode('utf-8').split("\n")[0]
+
+        self.pids = [pid_v4, pid_v6]
 
     def run(self):
         data = {'cpu': '', 'mem': '', 'vsz': '', 'rss': '', 'pri': ''}
@@ -216,7 +219,7 @@ class PsCollector(Collector):
             try:
                 sep = re.compile('[\s]+')
                 r = subprocess.run(['ps','-p',pid,'-o','%cpu,%mem,vsz,rss,pri'], stdout=subprocess.PIPE)
-                ps = sep.split(r.stdout.decode('utf-8').split('\n')[1])
+                ps = sep.split(r.stdout.decode('utf-8').split('\n')[1].lstrip())
 
                 data['cpu'] = data['cpu'] + '|' + ps[0]
                 data['mem'] = data['mem'] + '|' + ps[1]
@@ -276,23 +279,37 @@ class BirdCollector (Collector):
 
     def run(self):
         protocols = {} # name: established
-        num_established = 0
-        received_pfx = 0
-        accepted_pfx = 0
-        received_withdraw = 0
-        accepted_withdraw = 0
 
         sep = re.compile('[\s]+')
 
         sockets = []
-        if os.environ.get('BIRD_SOCKETS') is not None:
-            for s in os.environ.get('BIRD_SOCKETS').split(','):
-                if stat.S_ISSOCK(os.stat(s).st_mode):
-                    sockets.append(s)
-        if len(sockets) == 0:
-            sockets.append('/var/run/bird.ctl')
+        socket_v4 = subprocess.run(["systemctl", "show", "--property", "ExecStart", "--value", "bird@globepeer-ipv4"], stdout=subprocess.PIPE).stdout.decode('utf-8').split("\n")[0].split(" ")
+        for e in socket_v4:
+            if e.endswith(".ctl"):
+                socket_v4 = e
+                break
+        socket_v6 = subprocess.run(["systemctl", "show", "--property", "ExecStart", "--value", "bird@globepeer-ipv6"], stdout=subprocess.PIPE).stdout.decode('utf-8').split("\n")[0].split(" ")
+        for e in socket_v6:
+            if e.endswith(".ctl"):
+                socket_v6 = e
+                break
+        sockets = [socket_v4, socket_v6]
 
+        established = ''
+        received_pfx = ''
+        accepted_pfx = ''
+        received_withdraw = ''
+        accepted_withdraw = ''
+        mem_tables = ''
+        mem_attr = ''
+        mem_total = ''
         for socket in sockets:
+            num_established = 0
+            num_received_pfx = 0
+            num_accepted_pfx = 0
+            num_received_withdraw = 0
+            num_accepted_withdraw = 0
+
             # get list of BGP protocols
             r = subprocess.run(['birdc','-s',socket,"show protocols"], stdout=subprocess.PIPE)
             for p in r.stdout.decode('utf-8').split("\n"):
@@ -310,32 +327,39 @@ class BirdCollector (Collector):
                     for l in r.split("\n"):
                         if 'Import updates:' in l:
                             l = sep.split(l)
-                            received_pfx += int(l[3])
-                            accepted_pfx += int(l[7])
+                            num_received_pfx += int(l[3])
+                            num_accepted_pfx += int(l[7])
                         elif 'Import withdraws:' in l:
                             l = sep.split(l)
-                            received_withdraw += int(l[3])
-                            accepted_withdraw += int(l[7])
+                            num_received_withdraw += int(l[3])
+                            num_accepted_withdraw += int(l[7])
 
-        # get memory usage (all in kB)
-        mem_tables = 0
-        mem_attr = 0
-        mem_total = 0
-        for socket in sockets:
+            established = established + '|' + str(num_established)
+            received_pfx = received_pfx + '|' + str(num_received_pfx)
+            accepted_pfx = accepted_pfx + '|' + str(num_accepted_pfx)
+
+            # get memory usage (all in kB)
             r = subprocess.run(['birdc','-s',socket,f'show memory'], stdout=subprocess.PIPE)
             for l in r.stdout.decode('utf-8').split("\n"):
                 if 'Routing tables:' in l:
                     l = sep.split(l)
-                    mem_tables += self._memCalc(l[2], l[3])
+                    mem_tables = f"{mem_tables}|{self._memCalc(l[2], l[3])}"
                 elif 'Route attributes:' in l:
                     l = sep.split(l)
-                    mem_attr += self._memCalc(l[2], l[3])
+                    mem_attr = f"{mem_attr}|{self._memCalc(l[2], l[3])}"
                 elif 'Total:' in l:
                     l = sep.split(l)
-                    mem_total += self._memCalc(l[1], l[2])
+                    mem_total = f"{mem_total}|{self._memCalc(l[1], l[2])}"
+
+        established = established[1:]
+        received_pfx = received_pfx[1:]
+        accepted_pfx = accepted_pfx[1:]
+        mem_tables = mem_tables[1:]
+        mem_attr = mem_attr[1:]
+        mem_total = mem_total[1:]
 
         # send data to queue
-        data = {'established': num_established, 'mem_tables': mem_tables, 'mem_attr': mem_attr, 'mem_total': mem_total, 'received_pfx': received_pfx, 'accepted_pfx': accepted_pfx, 'received_withdraw': received_withdraw, 'accepted_withdraw': accepted_withdraw}
+        data = {'established': established, 'mem_tables': mem_tables, 'mem_attr': mem_attr, 'mem_total': mem_total, 'received_pfx': received_pfx, 'accepted_pfx': accepted_pfx, 'received_withdraw': received_withdraw, 'accepted_withdraw': accepted_withdraw}
         self.queue.put({'id': self.i, 'who': 'BirdCollector', 'data': data})
         self.running_childs_count -= 1
 
@@ -367,10 +391,8 @@ if __name__ == "__main__":
         print("Set NET_IF environment variable to interface name if you want to monitor network traffic.\n")
     else:
         print("Network traffic is monitored at interface "+os.environ.get('NET_IF'))
-    if os.environ.get('BIRD_SOCKETS') is None:
-        print("Set BIRD_SOCKETS environment variable to a comma separated list of socket files for BIRD daemons to collect statistics from. Default: /var/run/bird.ctl\n")
-    else:
-        print("Monitored BIRD sockets "+os.environ.get('BIRD_SOCKETS'))
+    print("Sockets and PID of BIRD will be extracted from systemd services: bird@globepeer-ipv4, bird@globepeer-ipv6")
+    print("")
     print(f"Listening on http://{hostname}:{port} for commands:")
     print(f"   http://{hostname}:{port}/start?comment=foo   Start new measurement, write `foo` as comment to result file")
     print(f"   http://{hostname}:{port}/stop                Stop measurement")
