@@ -78,11 +78,11 @@ for datapoint in statsdata:
     else:
         sysstat_y_swap.append(None)
     if 'ps_cpu' in datapoint.keys():
-        birdstat_y_cpu.append( [None if e == '_' else float(e) for e in datapoint['ps_cpu'].split('|') ])
+        birdstat_y_cpu.append( [None if e == '_' or e == '' else float(e) for e in datapoint['ps_cpu'].split('|') ])
     else:
         birdstat_y_cpu.append([None])
     if 'ps_vsz' in datapoint.keys():
-        birdstat_y_mem.append( [None if e == '_' else float(e)/1024 for e in datapoint['ps_vsz'].split('|') ]) # KiB → MiB
+        birdstat_y_mem.append( [None if e == '_' or e == '' else float(e)/1024 for e in datapoint['ps_vsz'].split('|') ]) # KiB → MiB
     else:
         birdstat_y_mem.append([None])
     if 'bird_established' in datapoint.keys():
