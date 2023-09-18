@@ -178,6 +178,7 @@ class Controller:
             f.write("===DATA===\n")
             for i, row in self.data.items():
                 f.write(f"{i},{row['time']},{row['sys_load']},{row['sys_mem']},{row['sys_swap']},{row['sys_net_rx']},{row['sys_net_tx']},{row['ps_cpu']},{row['ps_mem']},{row['ps_vsz']},{row['ps_rss']},{row['ps_pri']},{row['bird_established']},{row['bird_mem_tables']},{row['bird_mem_attr']},{row['bird_mem_total']},{row['bird_received_pfx']},{row['bird_accepted_pfx']},{row['bird_received_withdraw']},{row['bird_accepted_withdraw']}\n")
+        self.data = {}
 
 class Collector:
     t = None
@@ -337,6 +338,8 @@ class BirdCollector (Collector):
             established = established + '|' + str(num_established)
             received_pfx = received_pfx + '|' + str(num_received_pfx)
             accepted_pfx = accepted_pfx + '|' + str(num_accepted_pfx)
+            received_withdraw = received_withdraw + '|' + str(num_received_withdraw)
+            accepted_withdraw = accepted_withdraw + '|' + str(num_accepted_withdraw)
 
             # get memory usage (all in kB)
             r = subprocess.run(['birdc','-s',socket,f'show memory'], stdout=subprocess.PIPE)
@@ -354,6 +357,8 @@ class BirdCollector (Collector):
         established = established[1:]
         received_pfx = received_pfx[1:]
         accepted_pfx = accepted_pfx[1:]
+        received_withdraw = received_withdraw[1:]
+        accepted_withdraw = accepted_withdraw[1:]
         mem_tables = mem_tables[1:]
         mem_attr = mem_attr[1:]
         mem_total = mem_total[1:]
