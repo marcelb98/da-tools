@@ -138,9 +138,9 @@ for proto in range(0,2):
     ax2.set_ylabel("RAM [MiB]")
     ax3.set_ylabel("BGP sessions [#]")
     ax4.set_ylabel("prefixes [#]")
-    p1 = host.plot(x, [e[proto] for e in birdstat_y_cpu], "-", color=color1, label=f"CPU usage")
+    p1 = host.plot(x, [e[proto] for e in birdstat_y_cpu], ".", color=color1, label=f"CPU usage")
     host.set_ylim(0, 100)
-    p2 = ax2.plot(x, [e[proto] for e in birdstat_y_mem], "-", color=color2, label=f"used RAM") # TODO plot also mem1,...,n
+    p2 = ax2.plot(x, [e[proto] for e in birdstat_y_mem], "-", color=color2, label=f"used RAM")
     if 'total_ram' in metadata.keys():
         ax2.axhline(y = int(metadata['total_ram'])/1024, color = color2, linestyle = '--')
         ax2.set_ylim(0, int(metadata['total_ram'])/1024*1.1)
