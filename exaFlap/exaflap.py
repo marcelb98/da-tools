@@ -54,16 +54,24 @@ for peerConf in neighbors:
             break
 
 mode = 0
+fin = False
 while True:
-    if mode == 0:
-        print("currently ANNOUNCING routes    ", end="\r")
-    else:
-        print("currently NOT ANNOUNCING routes", end="\r")
-    for peer in peers:
-        r = subprocess.run(['env', f'exabgp.api.pipename={peer}', '/home/labadm/exabgp/bin/exabgpcli'] + peers[peer][mode], stdout=subprocess.PIPE)
-        if r.returncode != 0:
-            print(f"ERROR: sending mode {mode} to peer {peer}.")
-        time.sleep(wait_between_peers)
+    try:
+        if mode == 0:
+            print("currently ANNOUNCING routes    ", end="\r")
+        else:
+            print("currently NOT ANNOUNCING routes", end="\r")
+        for peer in peers:
+            r = subprocess.run(['env', f'exabgp.api.pipename={peer}', '/home/labadm/exabgp/bin/exabgpcli'] + peers[peer][mode], stdout=subprocess.PIPE)
+            if r.returncode != 0:
+                print(f"ERROR: sending mode {mode} to peer {peer}.")
+            time.sleep(wait_between_peers)
 
-    mode = (mode + 1) % 2
-    time.sleep(wait_between_flaps)
+        if fin:
+            break
+        else:
+            mode = (mode + 1) % 2
+            time.sleep(wait_between_flaps)
+    except KeyboardInterrupt:
+        mode = 0
+        fin = True
