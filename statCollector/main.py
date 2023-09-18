@@ -112,7 +112,10 @@ class Controller:
             # fetch statistics from queue and write them to data
             while True:
                 new = self.queue.get()
-                d = self.data[new['id']]
+                try:
+                    d = self.data[new['id']]
+                except KeyError:
+                    continue
                 if new['who'] == 'BirdCollector':
                     d['bird_established'] = new['data']['established']
                     d['bird_mem_tables'] = new['data']['mem_tables']
@@ -222,11 +225,17 @@ class PsCollector(Collector):
                 r = subprocess.run(['ps','-p',pid,'-o','%cpu,%mem,vsz,rss,pri'], stdout=subprocess.PIPE)
                 ps = sep.split(r.stdout.decode('utf-8').split('\n')[1].lstrip())
 
-                data['cpu'] = data['cpu'] + '|' + ps[0]
+                # data['cpu'] = data['cpu'] + '|' + ps[0] # this data is not momentary, but for total process runtime
                 data['mem'] = data['mem'] + '|' + ps[1]
                 data['vsz'] = data['vsz'] + '|' + ps[2]
                 data['rss'] = data['rss'] + '|' + ps[3]
                 data['pri'] = data['pri'] + '|' + ps[4]
+
+                r = subprocess.run(['top', '-b', '-n', '1', '-p', pid], stdout=subprocess.PIPE)
+                r = r.stdout.decode('utf-8').split("\n")
+                top = sep.split(r[len(r)-2].lstrip())
+                data['cpu'] = data['cpu'] + '|' + top[8].replace(',','.')
+
 
             except IndexError:
                 pass
