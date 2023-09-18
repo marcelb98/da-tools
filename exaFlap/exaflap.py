@@ -21,16 +21,17 @@ peers = {
 neighbors = []
 i = 0
 for n in glob.glob(conf_dir+'ipv4/config/*.conf'):
-    neighbors.append(n)
-    i += 1
     if i == peers4:
         break
-i = 0
-for n in glob.glob(conf_dir+'ipv6/config/*.conf'):
     neighbors.append(n)
     i += 1
+
+i = 0
+for n in glob.glob(conf_dir+'ipv6/config/*.conf'):
     if i == peers6:
         break
+    neighbors.append(n)
+    i += 1
 
 # get routes from peers
 for peerConf in neighbors:
@@ -44,10 +45,9 @@ for peerConf in neighbors:
     for l in config.split("\n"):
         if not l.lstrip().startswith("unicast"):
             continue
-        r = l.lstrip()
-        peers[neighbor][0].append(r) # data for announcement
-        r = r.split(" ")
-        peers[neighbor][1].append(f"unicast {r[1]} next-hop {r[3]}") # data for withdraw
+        r = l.lstrip().split(" ")
+        peers[neighbor][0].append(f"announce route {' '.join(r[1:])}") # data for announcement
+        peers[neighbor][1].append(f"withdraw route {r[1]} next-hop {r[3]}") # data for withdraw
 
         i += 1
         if i == routes:
@@ -55,8 +55,12 @@ for peerConf in neighbors:
 
 mode = 0
 while True:
+    if mode == 0:
+        print("currently ANNOUNCING routes    ", end="\r")
+    else:
+        print("currently NOT ANNOUNCING routes", end="\r")
     for peer in peers:
-        r = subprocess.run(['env', f'exabgp.api.pipename={peer}', 'exabgpcli'] + peers[peer][mode], stdout=subprocess.PIPE)
+        r = subprocess.run(['env', f'exabgp.api.pipename={peer}', '/home/labadm/exabgp/bin/exabgpcli'] + peers[peer][mode], stdout=subprocess.PIPE)
         if r.returncode != 0:
             print(f"ERROR: sending mode {mode} to peer {peer}.")
         time.sleep(wait_between_peers)
