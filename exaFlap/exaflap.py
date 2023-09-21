@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-peers4 = 1
-peers6 = 1
+peers4 = 5
+peers6 = 0
 routes = 1
 wait_between_peers = 0 # seconds
 wait_between_flaps = 1 # seconds
@@ -11,6 +11,7 @@ import time
 import glob
 import os
 import subprocess
+from threading import Thread
 
 peers = {
     # ip: [ [announce, ...], [withdraw, ...]],
@@ -45,7 +46,7 @@ for peerConf in neighbors:
     for l in config.split("\n"):
         if not l.lstrip().startswith("unicast"):
             continue
-        r = l.lstrip().split(" ")
+        r = l.lstrip().rstrip(";").split(" ")
         peers[neighbor][0].append(f"announce route {' '.join(r[1:])}") # data for announcement
         peers[neighbor][1].append(f"withdraw route {r[1]} next-hop {r[3]}") # data for withdraw
 
@@ -53,25 +54,67 @@ for peerConf in neighbors:
         if i == routes:
             break
 
-mode = 0
-fin = False
+# show info about what will happen
+for peer in peers:
+    print(f'{peer}: {len(peers[peer][0])}')
+print("")
+
+# class to run exabgpcli in thread
+class ExaBGP:
+    t = None
+    peer = None
+    wait = 1
+    commandA = None
+    commandB = None
+    finish = False
+
+    mode = 0
+
+    def __init__(self, peer, wait, commandA, commandB):
+        self.peer = peer
+        self.wait = wait
+        self.commandA = commandA
+        self.commandB = commandB
+
+    def stop(self):
+        self.finish = True
+
+    def run(self):
+        while not self.finish:
+            cmds = self.commandA if self.mode == 0 else self.commandB
+            for cmd in cmds:
+                r = subprocess.run(['env', f'exabgp.api.pipename={self.peer}', '/home/labadm/exabgp/bin/exabgpcli', cmd] , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            if r.returncode != 0:
+                print(f"ERROR: sending to peer {self.peer}.")
+            if r.stderr.decode('utf-8') != '':
+                print(f"{self.peer}: ERROR: {r.stderr.decode('utf-8')}")
+
+            time.sleep(self.wait)
+            self.mode = (self.mode + 1) % 2
+
+    def start(self):
+        self.t = Thread(target=self.run)
+        self.t.daemon = True
+        self.t.start()
+
+# prepare threads
+threads = []
+for peer in peers:
+    t = ExaBGP(peer, wait_between_flaps, peers[peer][0], peers[peer][1])
+    threads.append(t)
+
+# start all threads
+for t in threads:
+    t.start()
+    print(f"Started {t.peer}")
+
+# block main thread and wait for Ctrl+C
 while True:
     try:
-        if mode == 0:
-            print("currently ANNOUNCING routes    ", end="\r")
-        else:
-            print("currently NOT ANNOUNCING routes", end="\r")
-        for peer in peers:
-            r = subprocess.run(['env', f'exabgp.api.pipename={peer}', '/home/labadm/exabgp/bin/exabgpcli'] + peers[peer][mode], stdout=subprocess.PIPE)
-            if r.returncode != 0:
-                print(f"ERROR: sending mode {mode} to peer {peer}.")
-            time.sleep(wait_between_peers)
-
-        if fin:
-            break
-        else:
-            mode = (mode + 1) % 2
-            time.sleep(wait_between_flaps)
+        time.sleep(0.1)
     except KeyboardInterrupt:
-        mode = 0
-        fin = True
+        print("STOPPING ALL THREADS...")
+        for t in threads:
+            t.stop()
+        break
