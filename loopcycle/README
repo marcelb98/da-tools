@@ -1,0 +1,8 @@
+1. Collect log from, e. g. from journal:
+journalctl --start "YYYY-mm-dd HH:ii:ss" --until "YYYY-mm-dd HH:ii:ss" -u bird@globepeer-ipv4
+
+2. Filter for lines with loopcycle data
+grep "I/O loop cycle" journal.log > loopcycle.log
+
+3. Plot graps
+./plot.py loopcycle.log
