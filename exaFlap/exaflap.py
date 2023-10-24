@@ -1,34 +1,50 @@
 #! /usr/bin/env python3
 
-peers4 = 5
-peers6 = 0
-routes = 1
-wait_between_peers = 0 # seconds
-wait_between_flaps = 1 # seconds
-conf_dir = '/home/labadm/tenants/mb-victim/'
-
 import time
 import glob
 import os
 import subprocess
 from threading import Thread
+import argparse
 
+# argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--conf", type=str, default='/home/labadm/tenants/mb-victim/', help="Path to configuration of RS-Feeder")
+parser.add_argument("-4", "--peers4", type=int, default=975, help="Number of IPv4 peers with flapping routes")
+parser.add_argument("-6", "--peers6", type=int, default=0, help="Number of IPv6 peers with flapping routes")
+parser.add_argument("-r", "--routes", type=int, default=1, help="Number of flapping routes for each peer")
+parser.add_argument("-w", "--wait", type=float, default=0.2, help="Time to wait between start of peers")
+parser.add_argument("-i", "--interval", type=int, default=36000, help="Interval (milliseconds) of flapping")
+parser.add_argument("-R", "--reverse", action="store_true", help="Get peers from RS-Feeder config in reverse order")
+args = parser.parse_args()
+
+# fill out vars from argparse
+peers4 = args.peers4
+peers6 = args.peers6
+routes = args.routes
+wait_between_peers = args.wait # seconds
+wait_between_flaps = args.interval / 1000 # seconds
+conf_dir = args.conf
+
+# run
 peers = {
     # ip: [ [announce, ...], [withdraw, ...]],
     # ...
 }
 
 # get peer IPs
+v4configs = reverse(glob.glob(conf_dir+'ipv4/config/*.conf')) if args.reverse else glob.glob(conf_dir+'ipv4/config/*.conf')
+v6configs = reverse(glob.glob(conf_dir+'ipv6/config/*.conf')) if args.reverse else glob.glob(conf_dir+'ipv6/config/*.conf')
 neighbors = []
 i = 0
-for n in glob.glob(conf_dir+'ipv4/config/*.conf'):
+for n in v4configs:
     if i == peers4:
         break
     neighbors.append(n)
     i += 1
 
 i = 0
-for n in glob.glob(conf_dir+'ipv6/config/*.conf'):
+for n in v6configs:
     if i == peers6:
         break
     neighbors.append(n)
