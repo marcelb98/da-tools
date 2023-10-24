@@ -33,8 +33,11 @@ peers = {
 }
 
 # get peer IPs
-v4configs = reverse(glob.glob(conf_dir+'ipv4/config/*.conf')) if args.reverse else glob.glob(conf_dir+'ipv4/config/*.conf')
-v6configs = reverse(glob.glob(conf_dir+'ipv6/config/*.conf')) if args.reverse else glob.glob(conf_dir+'ipv6/config/*.conf')
+v4configs = list(glob.glob(conf_dir+'ipv4/config/*.conf'))
+v6configs = list(glob.glob(conf_dir+'ipv6/config/*.conf'))
+if args.reverse:
+    v4configs.reverse()
+    v6configs.reverse()
 neighbors = []
 i = 0
 for n in v4configs:
