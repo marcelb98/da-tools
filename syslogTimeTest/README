@@ -1,0 +1,3 @@
+capture the logs like this:
+$ journalctl -e -f -o short-precise > logdump.txt
+
