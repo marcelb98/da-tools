@@ -1,0 +1,19 @@
+Adopt config to print information when functions are started:
+TIMELOG;58243;5.61.128.0/18;2_nexthop_check;START
+TIMELOG;58243;5.61.128.0/18;2_nexthop_check;END
+each line has to start with TIMELOG and values are separated by ;
+first value is ASN of peer for which the function was executed.
+2nd value is the prefix of the route the filter was applied on
+3rd value is the name of the function
+4th value indicates if function was started or finished
+
+Collect data with:
+sudo journalctl -f -e -o short-iso-precise -u bird@globepeer-ipv4 > data.log
+
+
+# Add log_time() function to all protocols around RPKI check in BIRD config
+This can be done using this search-replace in vim:
+
+:%s/\v(\s*)import_bgp_to_master_1_common\((\d+),([ 0-9,]*)\);\n(\s*)import_bgp_to_master_2_customer_([0-9a-zA-Z_]+)\(\);/\1import_bgp_to_master_1_common\(\2,\3\);\r\1log_time\(\2,net,"i13_rpki_roa",true\);\r\1import_bgp_to_master_2_customer_\5\(\);\r\1log_time\(\2,net,"i13_rpki_roa",false\);/g
+
+
