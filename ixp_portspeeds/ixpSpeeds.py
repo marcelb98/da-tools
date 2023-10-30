@@ -107,8 +107,32 @@ for speed in sorted_speeds:
         labels.append(f"{speed/1000}G")
 
 cm = 1/2.54
-fig, ax = plt.subplots(figsize=(17*cm, 15*cm))
-ax.pie(sizes, labels=labels)
-plt.legend(loc='center left', bbox_to_anchor=(-0.25,0.5))
-plt.show()
+#fig, ax = plt.subplots(figsize=(17*cm, 15*cm))
+#wedges, labels = ax.pie(sizes, labels=labels, shadow=False)
+#plt.legend(loc='center left', bbox_to_anchor=(-0.25,0.5))
+#plt.tight_layout()
+#plt.show()
 
+fig, ax = plt.subplots(figsize=(20*cm, 15*cm))
+raw_data = ax.barh(labels, sizes, label="raw data")
+summarized_data = ax.barh(['≥10G', '≥20G', '≥30G'], [more_than_10g, more_than_20g, more_than_30g], label="summarized data")
+
+for i, l in enumerate(labels + ['>10G', '>20G', '>30G']):
+    if i < len(labels):
+        plt.text(sizes[i], i, f"{sizes[i]} ({(sizes[i]/nbr_count)*100:.1f}%)", ha = 'left',)
+    else:
+        if l == '>10G':
+            plt.text(more_than_10g, i, f"{more_than_10g} ({(more_than_10g/nbr_count)*100:.1f}%)", ha = 'left')
+        elif l == '>20G':
+            plt.text(more_than_20g, i, f"{more_than_20g} ({(more_than_20g/nbr_count)*100:.1f}%)", ha = 'left')
+        elif l == '>30G':
+            plt.text(more_than_30g, i, f"{more_than_30g} ({(more_than_30g/nbr_count)*100:.1f}%)", ha = 'left')
+plt.xticks(rotation=90)
+#plt.xscale('log')
+plt.legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.1))
+ax.set_ylabel("connected speed")
+ax.set_xlabel("number of AS [#]")
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+plt.tight_layout()
+plt.show()
