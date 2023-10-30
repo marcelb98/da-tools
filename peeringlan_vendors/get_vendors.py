@@ -30,6 +30,8 @@ if len(sys.argv) > 3 and sys.argv[3] == 'latex':
 mac = MacLookup()
 mac.update_vendors()
 
+maclist = set()
+
 vendors = {
     '_unknown': 0,
     '_invalid': 0
@@ -39,44 +41,38 @@ if sys.argv[1] == 'iproute2':
     with open(sys.argv[2], 'r') as f:
         for line in f.readlines():
             address = line.split(" ")[4]
-            try:
-                v = mac.lookup(address)
-                if v in vendors.keys():
-                    vendors[v] += 1
-                else:
-                    vendors[v] = 1
-            except VendorNotFoundError:
-                vendors['_unknown'] += 1
-            except InvalidMacError:
-                vendors['_invalid'] += 1
+            maclist.add(address)
+
 elif sys.argv[1] == 'ixf':
     with open(sys.argv[2], 'r') as f:
         data = json.load(f)
         for member in data['member_list']:
-            member_mac_list = set()
             for connection in member['connection_list']:
                 for vlan in connection['vlan_list']:
                     if 'ipv4' in vlan:
                         for address in vlan['ipv4']['mac_addresses']:
-                            member_mac_list.add(address)
+                            maclist.add(address)
+
                     if 'ipv6' in vlan:
                         for address in vlan['ipv6']['mac_addresses']:
-                            member_mac_list.add(address)
-            for address in member_mac_list:
-                try:
-                    v = mac.lookup(address)
-                    if v in vendors.keys():
-                        vendors[v] += 1
-                    else:
-                        vendors[v] = 1
-                except VendorNotFoundError:
-                    vendors['_unknown'] += 1
-                except InvalidMacError:
-                    vendors['_invalid'] += 1
+                            maclist.add(address)
 
 else:
     help()
     sys.exit(1)
+
+for address in maclist:
+    try:
+        v = mac.lookup(address)
+        if v in vendors.keys():
+            vendors[v] += 1
+        else:
+            vendors[v] = 1
+    except VendorNotFoundError:
+        vendors['_unknown'] += 1
+    except InvalidMacError:
+        vendors['_invalid'] += 1
+
 
 if format == 'latex':
     print('\\begin{table}[p]')
