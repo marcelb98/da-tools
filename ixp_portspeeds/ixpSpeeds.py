@@ -29,7 +29,7 @@ if len(sys.argv) < 2:
 ixpid = sys.argv[1]
 headers = {'Accept': 'application/json'}
 
-if os.environ['API_KEY'] is not None:
+if 'API_KEY' in os.environ.keys():
     headers['Authorization'] = "Api-Key "+os.environ['API_KEY']
 
 speeds = {} # speed: counter, …
