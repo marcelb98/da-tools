@@ -16,6 +16,7 @@ parser.add_argument("-r", "--routes", type=int, default=1, help="Number of flapp
 parser.add_argument("-w", "--wait", type=float, default=0.2, help="Time to wait between start of peers")
 parser.add_argument("-i", "--interval", type=int, default=36000, help="Interval (milliseconds) of flapping")
 parser.add_argument("-R", "--reverse", action="store_true", help="Get peers from RS-Feeder config in reverse order")
+parser.add_argument("-N", "--notPeer", type=str, help="Do not flap this given peer (by IP)")
 args = parser.parse_args()
 
 # fill out vars from argparse
@@ -41,6 +42,8 @@ if args.reverse:
 neighbors = []
 i = 0
 for n in v4configs:
+    if args.notPeer is not None and os.path.basename(n).rstrip('.conf') == args.notPeer:
+        continue
     if i == peers4:
         break
     neighbors.append(n)
@@ -48,6 +51,8 @@ for n in v4configs:
 
 i = 0
 for n in v6configs:
+    if args.notPeer is not None and os.path.basename(n).rstrip('.conf') == args.notPeer:
+        continue
     if i == peers6:
         break
     neighbors.append(n)

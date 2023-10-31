@@ -97,36 +97,41 @@ class ExaBGP:
 # prepare filesystem structure
 Path("/tmp/exaflap_processes").mkdir(exist_ok=True)
 
-# copy exabgp config file and add API call, write flap script
-c = args.conf + '/' + args.protocol + '/config/' + args.neighbor + '.conf'
-shutil.copy(c, "/tmp/exaflap_processes/"+args.neighbor+".conf")
-with open("/tmp/exaflap_processes/"+args.neighbor+".conf", "r") as f:
-    config = f.read()
-config = "process announce-routes {\n  run \"/tmp/exaflap_processes/"+args.neighbor+".py\";\n  encoder text;\n}\n\n" + config
-config = config.replace("  inherit routeservers;\n", "  inherit routeservers;\n  group-updates true;\n  api {\n    processes [announce-routes];\n  }\n")
-with open("/tmp/exaflap_processes/"+args.neighbor+".conf", "w") as f:
-    f.write(config)
 
-# get routes from peer
-peer_routes = []
-peer_flap = []
-i = 0
-for l in config.split("\n"):
-    if not l.lstrip().startswith("unicast"):
-        continue
-    r = l.lstrip().rstrip(";").split(" ")
-    peer_routes.append(f"announce route {' '.join(r[1:])}")
-    if i < args.routes:
-        peer_flap.append((f"announce route {' '.join(r[1:])}", f"withdraw route {r[1]} next-hop {r[3]}"))
-    i += 1
+# check if cfg has to be created
+if not (os.path.isfile("/tmp/exaflap_processes/"+args.neighbor+".conf") and os.path.isfile("/tmp/exaflap_processes/"+args.neighbor+".py")):
+    # copy exabgp config file and add API call, write flap script
+    c = args.conf + '/' + args.protocol + '/config/' + args.neighbor + '.conf'
+    shutil.copy(c, "/tmp/exaflap_processes/"+args.neighbor+".conf")
+    with open("/tmp/exaflap_processes/"+args.neighbor+".conf", "r") as f:
+        config = f.read()
+    config = "process announce-routes {\n  run \"/tmp/exaflap_processes/"+args.neighbor+".py\";\n  encoder text;\n}\n\n" + config
+    config = config.replace("  inherit routeservers;\n", "  inherit routeservers;\n  group-updates true;\n  api {\n    processes [announce-routes];\n  }\n")
+    with open("/tmp/exaflap_processes/"+args.neighbor+".conf", "w") as f:
+        f.write(config)
 
-# build script
-script = gen_script(args.neighbor, peer_routes, peer_flap, delay_start=0, delay_flap=2, interval_flap=wait_between_flaps)
-with open(f"/tmp/exaflap_processes/{args.neighbor}.py", "w") as f:
-    f.write(script)
-os.chmod(f"/tmp/exaflap_processes/{args.neighbor}.py", 0o744) # set executable
+    # get routes from peer
+    peer_routes = []
+    peer_flap = []
+    i = 0
+    for l in config.split("\n"):
+        if not l.lstrip().startswith("unicast"):
+            continue
+        r = l.lstrip().rstrip(";").split(" ")
+        peer_routes.append(f"announce route {' '.join(r[1:])}")
+        if i < args.routes:
+            peer_flap.append((f"announce route {' '.join(r[1:])}", f"withdraw route {r[1]} next-hop {r[3]}"))
+        i += 1
 
-print(f"We will be flapping {len(peer_flap)} of {len(peer_routes)} routes.")
+    # build script
+    script = gen_script(args.neighbor, peer_routes, peer_flap, delay_start=0, delay_flap=2, interval_flap=wait_between_flaps)
+    with open(f"/tmp/exaflap_processes/{args.neighbor}.py", "w") as f:
+        f.write(script)
+    os.chmod(f"/tmp/exaflap_processes/{args.neighbor}.py", 0o744) # set executable
+
+    print(f"We will be flapping {len(peer_flap)} of {len(peer_routes)} routes.")
+else:
+    print("Using existing config.")
 
 # stop exabgp process started by feeder
 print("Stopping exabgp processes started by feeder...")
