@@ -1,0 +1,8 @@
+1. Collect log from production:
+journalctl --since "DATE" --until "DATE" -u bird@globepeer-ipv4 > bird.log
+
+2. Parse info from log:
+./prepare.py bird.log > replay.txt
+
+3. Replay commands on lab RS:
+./replay.py replay.txt
