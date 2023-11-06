@@ -145,6 +145,34 @@ exports = sorted(exports)
 import matplotlib.pyplot as plt
 import numpy as np
 
+NAMES = {
+    'i0_0_init': 'Filter initialization',
+    'i0_0_del_comms': 'Delete std communities',
+    'i0_1_del_extComms': 'Delete ext communities',
+    'i0_2_del_largeComms': 'Delete large communities',
+    'i0_del_comms': 'Delete communities',
+    'i13_rpki_roa': 'RPKI/IRRDB validation',
+    'i1_filter_too_specific': 'Filter too specific prefixes',
+    'i3_filter_bogon_pfx': 'Filter bogon prefixes',
+    'i4_filter_bogon_asn': 'Filter bogon ASN',
+    'i2_nexthop_check': 'Nexthop check',
+    'i9_add_origin_info': 'Add origin info',
+    'i7_many_comms': 'Filter too many communities',
+    'i12_as_prepending': 'AS prepending',
+    'i6_check_aspath_length': 'Filter too long AS-Path',
+    'i10_set_blackhole_attrs': 'Set blackhole attributes',
+    'i5_check_first_asn': 'Check first ASN',
+    'i8_unspecific_pfx': 'Filter oo unspecific prefixes',
+    'i11_gshut_local_pref': 'Graceful shutdown: set local pref',
+    'e1_no_export_comms': 'Add no export communities',
+    'e2_not_same_AS': 'Filter announcement to same ASN',
+    'e3_redist_filtering': 'Redistribution filters',
+    'e4_polishing': 'Polishing',
+    'e4_0_polishing_largeComm': 'Polishing: large communities',
+    'e4_1_polishing_comm': 'Polishing: std communities',
+    'e5_cas_prepending': 'AS prepending'
+}
+
 # example data
 x = [7, 12, 5]
 y = ["f1", "f2", "f3"]
@@ -155,7 +183,7 @@ x = []
 y = []
 xerror = [[], []]
 for e in imports:
-    y.append(e.name)
+    y.append(NAMES[e.name])
     x.append(e.avg)
     xerror[0].append(e.lower)
     xerror[1].append(e.upper)
@@ -164,7 +192,7 @@ x1 = []
 y1 = []
 x1error = [[], []]
 for e in exports:
-    y1.append(e.name)
+    y1.append(NAMES[e.name])
     x1.append(e.avg)
     x1error[0].append(e.lower)
     x1error[1].append(e.upper)
