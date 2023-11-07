@@ -162,7 +162,7 @@ NAMES = {
     'i6_check_aspath_length': 'Filter too long AS-Path',
     'i10_set_blackhole_attrs': 'Set blackhole attributes',
     'i5_check_first_asn': 'Check first ASN',
-    'i8_unspecific_pfx': 'Filter oo unspecific prefixes',
+    'i8_unspecific_pfx': 'Filter too unspecific prefixes',
     'i11_gshut_local_pref': 'Graceful shutdown: set local pref',
     'e1_no_export_comms': 'Add no export communities',
     'e2_not_same_AS': 'Filter announcement to same ASN',
